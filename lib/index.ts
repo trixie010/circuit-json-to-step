@@ -49,7 +49,9 @@ import {
 import { VERSION } from "./version"
 import { createLineEdge, createPillHoleGeometry } from "./pill-geometry"
 import { createCircularHoleGeometry } from "./circular-hole-geometry"
+import { createCutoutGeometry } from "./cutout-geometry"
 import { circuitJsonToAssemblyStep } from "./assembly"
+import { normalizeStepNumericExponents } from "./step-text-utils"
 import { selectBoardGeometry } from "./select-board-geometry"
 
 type Hole = Extract<
@@ -446,6 +448,21 @@ export async function circuitJsonToStep(
     }
   }
 
+  // Cutouts flow through the same boundary and wall machinery as holes.
+  for (const element of circuitJson) {
+    if (element.type !== "pcb_cutout") continue
+    const cutoutGeometry = createCutoutGeometry({
+      repo,
+      cutout: element,
+      zMin: -halfBoardThickness,
+      zMax: halfBoardThickness,
+      zDir,
+    })
+    if (cutoutGeometry) {
+      sharedHoleGeometries.push(cutoutGeometry)
+    }
+  }
+
   // Create holes in bottom and top faces from the shared boundary loops.
   const bottomHoleLoops: Ref<FaceBound>[] = []
   const topHoleLoops: Ref<FaceBound>[] = []
@@ -690,7 +707,8 @@ export async function circuitJsonToStep(
   repo.add(new ShapeDefinitionRepresentation(productDefShape, shapeRep))
 
   // Generate and return STEP file text
-  return repo.toPartFile({ name: productName })
+  const stepText = repo.toPartFile({ name: productName })
+  return normalizeStepNumericExponents(stepText)
 }
 
 export { getCircuitJsonToGltfModule } from "./get-circuit-json-to-gltf-module"

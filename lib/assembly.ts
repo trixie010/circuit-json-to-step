@@ -34,6 +34,7 @@ import { generateComponentMeshes } from "./mesh-generation"
 import { generatePanelSolids } from "./panel-geometry"
 import type { GeneratedSceneSolid } from "./scene-geometry"
 import { readStepFile } from "./step-model-merger/read-step-file"
+import { normalizeStepNumericExponents } from "./step-text-utils"
 import { transformStepGeometry } from "./transform-step-geometry"
 import {
   PCB_SUBSTRATE_COLOR_RGB,
@@ -411,7 +412,7 @@ export async function circuitJsonToAssemblyStep(
     throw new Error("No assembly geometry found to export")
   }
 
-  return repo.toPartFile({ name: productName })
+  return normalizeStepNumericExponents(repo.toPartFile({ name: productName }))
 
   async function addMeshChildren(
     componentJson: CircuitJson,
